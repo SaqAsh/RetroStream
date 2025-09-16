@@ -1,0 +1,23 @@
+{
+  "name": "screen-stream-frontend",
+  "version": "1.0.0",
+  "description": "Retro-styled screen streaming client",
+  "main": "src/main.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "serve": "serve dist -l 3000",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "serve": "^14.2.1",
+    "terser": "^5.24.0"
+  },
+  "dependencies": {
+    "fflate": "^0.8.1"
+  }
+}
