@@ -19,7 +19,7 @@ pub struct Args {
     pub fps: Option<u32>,
     
     /// Compression level (0-22)
-    #[arg(short = 'c', long)]
+    #[arg(short = 'z', long)]
     pub compression: Option<i32>,
 }
 

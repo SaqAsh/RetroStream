@@ -33,7 +33,7 @@ export class UIController extends EventEmitter<UIEvents> {
   private fullscreenBtn?: HTMLButtonElement;
   private screenshotBtn?: HTMLButtonElement;
   
-  private currentScale = 1;
+  private currentScale = 0.25;
   private isFullscreen = false;
 
   constructor(logger: Logger) {

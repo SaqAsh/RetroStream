@@ -56,15 +56,13 @@ async fn main() -> Result<()> {
         metrics: metrics.clone(),
     };
 
+    // Create screen capture
+    let mut capture = ScreenCapture::new(config.clone(), metrics.clone())?;
+    
     // Start screen capture task
-    let capture_task = {
-        let config = config.clone();
-        let metrics = metrics.clone();
-        tokio::spawn(async move {
-            let mut capture = ScreenCapture::new(config, metrics)?;
-            capture.start_capture_loop(frame_tx).await
-        })
-    };
+    let capture_task = tokio::spawn(async move {
+        capture.start_capture_loop(frame_tx).await
+    });
 
     // Setup web server with CORS
     let app = Router::new()

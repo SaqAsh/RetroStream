@@ -4,8 +4,8 @@ use tokio::sync::broadcast;
 use tracing::{debug, warn, error};
 use xcap::Monitor;
 
+// Note: Monitor might not be Send, so we'll handle screen capture differently
 pub struct ScreenCapture {
-    monitor: Monitor,
     compressor: Compressor,
     config: Arc<Config>,
     metrics: Arc<Metrics>,
@@ -14,24 +14,35 @@ pub struct ScreenCapture {
 
 impl ScreenCapture {
     pub fn new(config: Arc<Config>, metrics: Arc<Metrics>) -> AppResult<Self> {
-        let monitor = Monitor::primary()
-            .map_err(|e| {
-                warn!("Failed to get primary monitor: {}, falling back to demo mode", e);
-                // Return a dummy error that we'll handle
-                crate::error::AppError::CompressionError("No monitor available".to_string())
-            })?;
-        
         let compressor = Compressor::new(config.compression.clone());
         
-        debug!("Screen capture initialized for monitor: {:?}", monitor.name());
+        debug!("Screen capture initialized");
         
         Ok(Self {
-            monitor,
             compressor,
             config,
             metrics,
             frame_count: 0,
         })
+    }
+    
+    fn get_primary_monitor() -> AppResult<Monitor> {
+        let monitors = Monitor::all()
+            .map_err(|e| {
+                warn!("Failed to get monitors: {}, falling back to demo mode", e);
+                crate::error::AppError::CompressionError("No monitors available".to_string())
+            })?;
+        
+        monitors
+            .into_iter()
+            .find(|m| m.is_primary().unwrap_or(false))
+            .or_else(|| {
+                // If no primary monitor, get the first one
+                Monitor::all().ok()?.into_iter().next()
+            })
+            .ok_or_else(|| {
+                crate::error::AppError::CompressionError("No monitors available".to_string())
+            })
     }
 
     pub async fn start_capture_loop(&mut self, frame_tx: broadcast::Sender<Vec<u8>>) -> AppResult<()> {
@@ -88,10 +99,16 @@ impl ScreenCapture {
         let start_time = std::time::Instant::now();
         
         // Try to capture real screen, fallback to demo if it fails
-        let (rgba_data, width, height) = match self.monitor.capture_image() {
+        let (rgba_data, width, height) = match Self::get_primary_monitor().and_then(|monitor| {
+            monitor.capture_image().map_err(|e| {
+                crate::error::AppError::CompressionError(format!("Screen capture failed: {}", e))
+            })
+        }) {
             Ok(image) => {
-                let rgba = image.to_rgba8().into_raw();
-                (rgba, image.width(), image.height())
+                let width = image.width();
+                let height = image.height();
+                let rgba = image.into_raw();
+                (rgba, width, height)
             }
             Err(e) => {
                 // Fallback to demo patterns if screen capture fails
