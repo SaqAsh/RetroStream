@@ -62,7 +62,3 @@ cd screen-stream-app
 ```
 
 Perfect for demos, development, and cloud deployments with virtual desktop support.
-
----
-
-*Built with ❤️ using Rust and TypeScript*
