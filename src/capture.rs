@@ -1,10 +1,9 @@
-use crate::{config::Config, error::AppResult, compression::Compressor, metrics::Metrics};
+use crate::{compression::Compressor, config::Config, error::AppResult, metrics::Metrics};
 use std::sync::Arc;
 use tokio::sync::broadcast;
-use tracing::{debug, warn, error};
+use tracing::{debug, error, warn};
 use xcap::Monitor;
 
-// Note: Monitor might not be Send, so we'll handle screen capture differently
 pub struct ScreenCapture {
     compressor: Compressor,
     config: Arc<Config>,
@@ -15,9 +14,9 @@ pub struct ScreenCapture {
 impl ScreenCapture {
     pub fn new(config: Arc<Config>, metrics: Arc<Metrics>) -> AppResult<Self> {
         let compressor = Compressor::new(config.compression.clone());
-        
+
         debug!("Screen capture initialized");
-        
+
         Ok(Self {
             compressor,
             config,
@@ -25,14 +24,13 @@ impl ScreenCapture {
             frame_count: 0,
         })
     }
-    
+
     fn get_primary_monitor() -> AppResult<Monitor> {
-        let monitors = Monitor::all()
-            .map_err(|e| {
-                warn!("Failed to get monitors: {}, falling back to demo mode", e);
-                crate::error::AppError::CompressionError("No monitors available".to_string())
-            })?;
-        
+        let monitors = Monitor::all().map_err(|e| {
+            warn!("Failed to get monitors: {}, falling back to demo mode", e);
+            crate::error::AppError::CompressionError("No monitors available".to_string())
+        })?;
+
         monitors
             .into_iter()
             .find(|m| m.is_primary().unwrap_or(false))
@@ -45,24 +43,27 @@ impl ScreenCapture {
             })
     }
 
-    pub async fn start_capture_loop(&mut self, frame_tx: broadcast::Sender<Vec<u8>>) -> AppResult<()> {
-        let mut interval = tokio::time::interval(
-            std::time::Duration::from_millis(self.config.frame_interval_ms())
-        );
-        
+    pub async fn start_capture_loop(
+        &mut self,
+        frame_tx: broadcast::Sender<Vec<u8>>,
+    ) -> AppResult<()> {
+        let mut interval = tokio::time::interval(std::time::Duration::from_millis(
+            self.config.frame_interval_ms(),
+        ));
+
         let mut frame_count = 0u64;
         let mut error_count = 0u64;
-        
+
         debug!("Starting capture loop at {} FPS", self.config.capture.fps);
-        
+
         loop {
             interval.tick().await;
-            
+
             match self.capture_frame().await {
                 Ok(frame_data) => {
                     frame_count += 1;
                     self.metrics.increment_frames_captured();
-                    
+
                     // Send to all connected clients
                     let receiver_count = frame_tx.receiver_count();
                     if receiver_count > 0 {
@@ -80,11 +81,11 @@ impl ScreenCapture {
                 Err(e) => {
                     error_count += 1;
                     self.metrics.increment_capture_errors();
-                    
+
                     if error_count % 10 == 0 {
                         error!("Capture error #{}: {}", error_count, e);
                     }
-                    
+
                     // Exponential backoff on repeated errors
                     if error_count > 5 {
                         let backoff = std::cmp::min(1000, error_count * 100);
@@ -97,7 +98,7 @@ impl ScreenCapture {
 
     async fn capture_frame(&mut self) -> AppResult<Vec<u8>> {
         let start_time = std::time::Instant::now();
-        
+
         // Try to capture real screen, fallback to demo if it fails
         let (rgba_data, width, height) = match Self::get_primary_monitor().and_then(|monitor| {
             monitor.capture_image().map_err(|e| {
@@ -118,22 +119,20 @@ impl ScreenCapture {
                 (self.generate_demo_frame(width, height), width, height)
             }
         };
-        
+
         let capture_duration = start_time.elapsed();
         self.metrics.record_capture_duration(capture_duration);
-        
+
         // Create frame message with metadata
-        let final_data = self.compressor.create_frame_message(
-            rgba_data.clone(),
-            width,
-            height,
-        )?;
-        
+        let final_data = self
+            .compressor
+            .create_frame_message(rgba_data.clone(), width, height)?;
+
         self.frame_count += 1;
-        
+
         if self.frame_count % 30 == 0 {
             debug!(
-                "Frame {}: {}ms capture, {}x{}, {} bytes", 
+                "Frame {}: {}ms capture, {}x{}, {} bytes",
                 self.frame_count,
                 capture_duration.as_millis(),
                 width,
@@ -141,34 +140,34 @@ impl ScreenCapture {
                 final_data.len()
             );
         }
-        
+
         Ok(final_data)
     }
-    
+
     fn generate_demo_frame(&self, width: u32, height: u32) -> Vec<u8> {
         let mut rgba_data = Vec::with_capacity((width * height * 4) as usize);
         let time = self.frame_count as f32 * 0.1;
-        
+
         for y in 0..height {
             for x in 0..width {
                 let fx = x as f32 / width as f32;
                 let fy = y as f32 / height as f32;
-                
+
                 // Create animated retro patterns
                 let wave1 = ((fx * 10.0 + time).sin() * 0.5 + 0.5) * 255.0;
                 let wave2 = ((fy * 8.0 + time * 1.3).cos() * 0.5 + 0.5) * 255.0;
                 let wave3 = (((fx + fy) * 6.0 + time * 0.8).sin() * 0.5 + 0.5) * 255.0;
-                
+
                 // Retro green/cyan color scheme
                 let r = (wave3 * 0.1) as u8;
                 let g = ((wave1 + wave3) * 0.4) as u8;
                 let b = (wave2 * 0.3) as u8;
                 let a = 255u8;
-                
+
                 rgba_data.extend_from_slice(&[r, g, b, a]);
             }
         }
-        
+
         rgba_data
     }
 }

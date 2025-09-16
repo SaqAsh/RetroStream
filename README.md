@@ -4,61 +4,46 @@ A high-performance screen streaming application with a retro cyberpunk aesthetic
 
 ![RetroStream Screenshot](https://github.com/user-attachments/assets/7a57b672-85ce-4241-a311-f55d2f04a3c0)
 
-## 🚀 Features
+## How to Use
 
-- **Real-time Screen Capture**: Live desktop streaming with 30+ FPS
-- **Low Latency**: Sub-100ms latency with WebSocket connections
-- **Retro UI**: Cyberpunk terminal-inspired interface
-- **Adaptive Quality**: High/Medium/Low quality settings
-- **Dynamic Scaling**: 25%-200% zoom with smooth controls
-- **Cross-platform**: Windows, Linux, macOS support
-- **Auto-reconnection**: Robust connection handling with exponential backoff
+1. **Start the backend**
+   ```bash
+   nix-shell
+   cargo run
+   ```
 
-## 🛠️ Tech Stack
+2. **Start the frontend**
+   ```bash
+   nix-shell --run "cd frontend && bun install && bun run dev"
+   ```
 
-**Backend (Rust)**
-- Tokio async runtime
-- Axum web framework with WebSocket support
-- xcap for screen capture
-- Zstd compression for bandwidth optimization
+3. **Open in browser**
+   - Go to http://localhost:3000
+   - Your screen will be streamed live
+   - Share the URL with others to let them view your screen
 
-**Frontend (TypeScript)**
-- Vite build tool
-- Canvas API for real-time rendering
-- Custom retro CSS styling
-- Responsive design
+## Development
 
-## 🏃‍♂️ Quick Start
-
-```bash
-# Clone and run
-git clone <repository>
-cd screen-stream-app
-./run.sh
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8080
-```
-
-## 📋 Requirements
-
-- Rust 1.70+
-- Node.js 18+
+### Prerequisites
+- Nix package manager (handles all dependencies automatically)
 - Modern web browser
 
-## 🎮 Controls
-
-- **F11**: Toggle fullscreen
-- **Ctrl+S**: Take screenshot
-- **Quality Selector**: Adjust streaming quality
-- **Scale Slider**: Zoom in/out (25%-200%)
-
-## 🐳 Docker Support
-
+### Backend Development
 ```bash
-# Run with Docker
-./docker-run.sh
+nix-shell
+cargo run                    # Run once
+cargo watch -x run          # Auto-reload on changes
+cargo build --release       # Optimized build
 ```
 
-Perfect for demos, development, and cloud deployments with virtual desktop support.
+### Frontend Development
+```bash
+nix-shell
+cd frontend
+bun install                  # Install dependencies
+bun run dev                  # Development server
+```
+
+### Tech Stack
+- **Backend**: Rust, Tokio, Axum, WebSockets, xcap screen capture
+- **Frontend**: TypeScript, Vite, Canvas API, WebSockets
