@@ -7,12 +7,14 @@ A high-performance screen streaming application with a retro cyberpunk aesthetic
 ## How to Use
 
 1. **Start the backend**
+
    ```bash
    nix-shell
    cargo run
    ```
 
 2. **Start the frontend**
+
    ```bash
    nix-shell --run "cd frontend && bun install && bun run dev"
    ```
@@ -25,10 +27,12 @@ A high-performance screen streaming application with a retro cyberpunk aesthetic
 ## Development
 
 ### Prerequisites
+
 - Nix package manager (handles all dependencies automatically)
 - Modern web browser
 
 ### Backend Development
+
 ```bash
 nix-shell
 cargo run                    # Run once
@@ -37,6 +41,7 @@ cargo build --release       # Optimized build
 ```
 
 ### Frontend Development
+
 ```bash
 nix-shell
 cd frontend
@@ -45,5 +50,14 @@ bun run dev                  # Development server
 ```
 
 ### Tech Stack
+
 - **Backend**: Rust, Tokio, Axum, WebSockets, xcap screen capture
 - **Frontend**: TypeScript, Vite, Canvas API, WebSockets
+
+### TODO!
+
+- [ ] Turn project into rust (wasm compatible) library for users to embed in their own apps.
+- [ ] Move Self-Hosting docker files to the examples/ folder.
+- [ ] Upload Package using workflow to npm registry.
+- [ ] Offload capture frame logic to gpu using wgpu.
+- [ ] Fix threads not exiting on shutdown.
